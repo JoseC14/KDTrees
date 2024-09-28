@@ -12,6 +12,10 @@ int main()
     int elem6[2] = { 8,4 };
     int elem7[2] = { 10,6 };
 
+
+    int pos[2] = { 4,10 };
+
+
     struct knode *root = NULL;
     struct knode *n1 = insert_knode(&root, elem1);
     struct knode* n2 = insert_knode(&root, elem2);
@@ -21,8 +25,9 @@ int main()
     struct knode* n6 = insert_knode(&root, elem6);
     struct knode* n7 = insert_knode(&root, elem7);
     struct knode* node_find = search_knode(root, elem3);
-   // printf("Node inserted with %d in x axis and %d in y axis\n", n1->x, n1->y);
-   // printf("Node inserted with %d in x axis and %d in y axis\n", n2->x, n2->y);
+    struct knode* node_nearest = nearest_neighbor(root, pos);
+    
+    printf("Nearest node of (%d, %d) position is (%d, %d) node \n", pos[0], pos[1], node_nearest->x, node_nearest->y);
     print_in_order_kdtree(root);
 
     delete_knode(root, node_find);

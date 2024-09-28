@@ -19,4 +19,8 @@ int check_depth(struct knode* root, struct knode* node);
 
 void delete_knode(struct knode *root, struct knode *node);
 void print_in_order_kdtree(struct knode *root);
+
+double euclidean_distance(double* point1, double* point2, int k);
+struct knode* nearest_neighbor(struct knode* root, int point[2]);
+
 #endif // KDTREE_H_INCLUDED
