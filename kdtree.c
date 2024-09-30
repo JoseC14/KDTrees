@@ -1,9 +1,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <float.h> 
+#include <stdbool.h>
 #include "kdtree.h"
 
-struct knode *insert_knode(struct knode **root, int elem[])
+struct knode *insert_knode(struct knode **root, double elem[])
 {
 
     //Inicializa a dimensão como 0
@@ -115,7 +117,7 @@ struct knode *insert_knode(struct knode **root, int elem[])
     return new_node;
 };
 
-struct knode* search_knode(struct knode* root, int elem[])
+struct knode* search_knode(struct knode* root, double elem[])
 {
     //aux e a raiz
     struct knode *aux = root;
@@ -351,7 +353,7 @@ void print_in_order_kdtree(struct knode *root)
     //Chama recursivamente com o filho esquerdo
     print_in_order_kdtree(root->left);
     //Imprime o valor do no atual
-    printf("(%d, %d) ", root->x, root->y);
+    printf("(%.1lf, %.1lf) ", root->x, root->y);
     //Chama recursivamente com o filho direito
     print_in_order_kdtree(root->right);
 }
@@ -368,70 +370,86 @@ double euclidean_distance(double* point1, double* point2, int k) {
     return sqrt(distance);
 }
 
-struct knode* nearest_neighbor(struct knode* root, int point[2])
+
+struct nearest_neighbor_result nearest_neighbor(struct knode* root, double* target, int depth, int k) {
+    struct nearest_neighbor_result best = { NULL, DBL_MAX }; // Inicializa o melhor resultado
+
+    if (root == NULL) {
+        return best; // Se a árvore estiver vazia
+    }
+
+    // Calcula a distância euclidiana do nó atual ao ponto alvo
+    double d = euclidean_distance((double[]) { root->x, root->y }, target, k);
+
+    // Se a distância atual é melhor que a melhor encontrada, atualize
+    if (d < best.distance) {
+        best.node = root; // Atualiza o nó
+        best.distance = d; // Atualiza a distância
+    }
+
+    // Determina a dimensão para a divisão
+    int dim = depth % k;
+
+    // Verifica qual subárvore explorar
+    struct knode* next_branch = NULL;
+    struct knode* other_branch = NULL;
+
+    // Se o alvo é maior que o nó atual na dimensão de divisão, vá para a direita
+    if (target[dim] > (dim == 0 ? root->x : root->y)) {
+        next_branch = root->right;
+        other_branch = root->left;
+    }
+    else {
+        next_branch = root->left;
+        other_branch = root->right;
+    }
+
+    // Chamada recursiva para a subárvore escolhida
+    struct nearest_neighbor_result next_best = nearest_neighbor(next_branch, target, depth + 1, k);
+
+    // Se encontramos um melhor vizinho na subárvore, atualize
+    if (next_best.node != NULL && next_best.distance < best.distance) {
+        best = next_best;
+    }
+
+    // Verifique se precisamos explorar a outra subárvore
+    double distance_to_split_plane = (dim == 0 ? target[0] - root->x : target[1] - root->y);
+    if (fabs(distance_to_split_plane) < best.distance) {
+        struct nearest_neighbor_result other_best = nearest_neighbor(other_branch, target, depth + 1, k);
+        // Se encontramos um melhor vizinho na outra subárvore, atualize
+        if (other_best.node != NULL && other_best.distance < best.distance) {
+            best = other_best;
+        }
+    }
+
+    return best; // Retorna o melhor resultado encontrado
+}
+
+// Função principal para iniciar a busca do vizinho mais próximo
+struct knode* find_nearest_neighbor(struct knode* root, double* target, int k) {
+    struct nearest_neighbor_result result = nearest_neighbor(root, target, 0, k);
+    return result.node; // Retorna o nó do vizinho mais próximo
+}
+
+void print_2d(struct knode* root, struct knode* node)
 {
-    //Se a arvore for vazia
-    if (root == NULL)
+    //Caso base, no e nulo
+    if (node == NULL)
     {
-        return NULL;
+        return;
     }
+    int depth = check_depth(root, node);
 
-    //Armazena os pontos em mnemonicos
-    int x = point[0];
-    int y = point[1];
-    //inicializa a dimensão como zero
-    int dim = 0;
-    //Inicializa o melhor ponto como a raiz
-    struct knode* best = root;
-    //Melhor ponto é inicializado como a raiz
-    struct knode* aux = root;
 
-    //Enquanto não chegar em um nó folha
-    while (aux != NULL)
-    {
-        double aux_point[2] = { aux->x, aux->y };
-        double best_point[2] = { best->x, best->y };
+    //Chama recursivamente com o filho esquerdo
+    print_2d(root, node->right);
+    //Imprime o valor do no atual]
 
-        // Calcula a distância euclidiana
-        double nearest_current = euclidean_distance(point, aux_point, 2);
-        double best_distance = euclidean_distance(point, best_point, 2);
+    
+    for (int i = 0; i < depth; i++) printf("      ");
 
-        //Se o nó atual for mais perto que o melhor nó até agora
-        if (nearest_current < best_distance)
-        {
-            //Melhor e o no atual
-            best = aux;
-        }
-
-        //Dimensao x
-        if (dim % 2 == 0)
-        {
-            //Traversa  a kd tree
-            if (x > aux->x)
-            {
-                aux = aux->right;
-            }
-            else
-            {
-                aux = aux->left;
-            }
-        }
-        //Dimensao y
-        else
-        {
-            //traversa a kd tree
-            if (y > aux->y)
-            {
-                aux = aux->right;
-            }
-            else
-            {
-                aux = aux->left;
-            }
-        }
-        //muda de dimensao
-        dim++;
-    }
-    //Retorna o no mais proximo
-    return best;
+    
+    printf("(%.1lf, %.1lf)  \n", node->x, node->y);
+    //Chama recursivamente com o filho direito
+    print_2d(root, node->left);
 }
